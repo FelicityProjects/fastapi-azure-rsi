@@ -197,5 +197,13 @@ async def get_recent_candles(
         candles=candles,
     )
 
+# --- 헬스 체크 엔드포인트 ---
+@app.get("/")
+async def health_check():
+    """
+    API 서버 상태 확인 (Health Check)
+    """
+    return {"status": "ok", "service": "RSI Indicator API", "server_time": datetime.now(timezone.utc)}
+
 # 로컬 실행:
 # uvicorn main:app --reload --port 8000
