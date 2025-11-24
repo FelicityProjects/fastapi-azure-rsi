@@ -134,6 +134,7 @@ async def get_latest_rsi(
         updated_at=last_open_time,
     )
 
+
 # --- 최근 N개 캔들 + 각 캔들의 RSI 반환 ---
 @app.get("/api/indicators/recent-candles", response_model=RecentCandlesResponse)
 async def get_recent_candles(
