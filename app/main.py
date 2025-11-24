@@ -107,6 +107,7 @@ def fetch_klines_from_binance(symbol: str, interval: str, limit: int = 200):
     return data
 
 
+
 # --- 최신 RSI 1개 반환 ---
 @app.get("/api/indicators/latest-rsi", response_model=LatestRsiResponse)
 async def get_latest_rsi(
