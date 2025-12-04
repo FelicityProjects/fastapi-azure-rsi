@@ -1,0 +1,66 @@
+name: Deploy to Azure VM
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 1. 깃허브 코드 가져오기
+      uses: actions/checkout@v3
+
+    - name: 2. 모든 파일 서버로 전송 (SCP)
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.KEY }}
+        port: 22
+        source: "."
+        target: "/home/${{ secrets.USERNAME }}/trading_bot"
+
+    - name: 3. 서버에서 프로그램 재시작 (SSH)
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.KEY }}
+        port: 22
+        script: |
+          # 1) 작업 폴더로 이동
+          mkdir -p /home/${{ secrets.USERNAME }}/trading_bot
+          cd /home/${{ secrets.USERNAME }}/trading_bot
+          
+          # 2) 라이브러리 설치 (fastapi, uvicorn 등)
+          if [ -f requirements.txt ]; then
+            pip3 install -r requirements.txt
+          fi
+          
+          # ---------------------------------------------------------
+          # 3) 기존 프로세스 종료 (업데이트를 위해)
+          # ---------------------------------------------------------
+          echo "🛑 기존 프로세스 종료 중..."
+          pkill -f uvicorn || true          # FastAPI 종료
+          pkill -f rsiBolbanTrade.py || true # 트레이딩 봇 종료
+          
+          # 잠시 대기 (포트 반환 안전 확보)
+          sleep 2
+          
+          # ---------------------------------------------------------
+          # 4) FastAPI 실행 (main.py)
+          # ---------------------------------------------------------
+          echo "🚀 FastAPI 서버 시작 (Port: 8000)..."
+          # uvicorn 실행 (로그는 api.out에 저장)
+          nohup uvicorn main:app --host 0.0.0.0 --port 8000 > api.out 2>&1 &
+          
+          # ---------------------------------------------------------
+          # 5) 트레이딩 봇 실행 (rsiBolbanTrade.py)
+          # ---------------------------------------------------------
+          echo "🤖 트레이딩 봇 시작..."
+          # 파이썬 스크립트 실행 (로그는 trade.out에 저장)
+          nohup python3 rsiBolbanTrade.py > trade.out 2>&1 &
+          
+          echo "✅ 모든 서비스 배포 완료!"
