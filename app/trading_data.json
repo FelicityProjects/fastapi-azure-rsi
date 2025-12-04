@@ -1,0 +1,34 @@
+{
+    "balance": 1004570.0371197029,
+    "holding": null,
+    "history": [
+        {
+            "time": "2025-12-02 17:15:31",
+            "action": "BUY",
+            "price": 86770.63,
+            "amount": 5.762318425024688,
+            "balance_after": 500000.0,
+            "reason": "상승장 눌림목",
+            "analysis": {
+                "rsi": 41.05,
+                "bb_lower": 86783.43,
+                "bb_upper": 87155.37,
+                "1h_trend_ma": 86130.7
+            }
+        },
+        {
+            "time": "2025-12-02 19:52:00",
+            "action": "SELL",
+            "price": 87563.72,
+            "amount": 5.762318425024688,
+            "balance_after": 0,
+            "reason": "볼린저 상단 익절",
+            "analysis": {
+                "rsi": 63.63,
+                "bb_lower": 86354.54,
+                "bb_upper": 87394.29,
+                "1h_trend_ma": 86229.7
+            }
+        }
+    ]
+}
