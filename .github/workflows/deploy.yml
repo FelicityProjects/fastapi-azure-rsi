@@ -21,7 +21,7 @@ jobs:
         port: 22
         source: "."
         target: "/home/${{ secrets.USERNAME }}/trading_bot"
-        timeout: "10m" # 👈 파일 전송 시간도 넉넉하게 10분으로 설정
+        timeout: "10m"
 
     - name: 3. 서버에서 프로그램 재시작 (SSH)
       uses: appleboy/ssh-action@master
@@ -30,42 +30,41 @@ jobs:
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.KEY }}
         port: 22
-        timeout: "10m" # 👈 [중요] 명령 실행 대기 시간을 10분으로 늘림 (기본값 30초는 너무 짧음)
+        timeout: "10m"
         script: |
-          # 1) PATH 환경변수 등록 (설치된 패키지 실행 경로 확보)
           export PATH=$PATH:/home/${{ secrets.USERNAME }}/.local/bin
-          
-          # 2) 작업 폴더로 이동
           mkdir -p /home/${{ secrets.USERNAME }}/trading_bot
           cd /home/${{ secrets.USERNAME }}/trading_bot
           
-          # 3) pip3가 없으면 설치
-          if ! command -v pip3 &> /dev/null; then
-            echo "⚙️ pip3 설치 중..."
-            sudo apt-get update
-            sudo apt-get install -y python3-pip
-          fi
+          # ---------------------------------------------------------
+          # 1) 안전하게 프로세스 종료 (자살 방지 코드 적용)
+          # ---------------------------------------------------------
+          echo "🛑 기존 프로세스 종료 중..."
           
-          # 4) 라이브러리 설치 (이미 설치되었으면 금방 넘어감)
+          # 'grep -v grep'은 자기 자신(검색 명령어)을 제외한다는 뜻입니다.
+          # 'awk'로 PID만 뽑아서 kill -9로 강제 종료합니다.
+          
+          # FastAPI 종료
+          ps -ef | grep "uvicorn main:app" | grep -v grep | awk '{print $2}' | xargs -r kill -9
+          
+          # 트레이딩 봇 종료
+          ps -ef | grep "python3 rsiBolbanTrade.py" | grep -v grep | awk '{print $2}' | xargs -r kill -9
+          
+          sleep 3
+          
+          # ---------------------------------------------------------
+          # 2) 라이브러리 설치 (필요시)
+          # ---------------------------------------------------------
           if [ -f requirements.txt ]; then
-            echo "📦 라이브러리 확인 중..."
             pip3 install -r requirements.txt
           fi
           
-          # 5) 기존 프로세스 종료
-          echo "🛑 기존 프로세스 종료 중..."
-          pkill -f uvicorn || true
-          pkill -f rsiBolbanTrade.py || true
+          # ---------------------------------------------------------
+          # 3) 서비스 재시작
+          # ---------------------------------------------------------
+          echo "🚀 서비스 재시작..."
           
-          # 포트 반환 대기
-          sleep 3
-          
-          # 6) FastAPI 실행 (로그는 api.out)
-          echo "🚀 FastAPI 서버 시작..."
           nohup uvicorn main:app --host 0.0.0.0 --port 8000 > api.out 2>&1 &
-          
-          # 7) 트레이딩 봇 실행 (로그는 trade.out)
-          echo "🤖 트레이딩 봇 시작..."
           nohup python3 rsiBolbanTrade.py > trade.out 2>&1 &
           
-          echo "✅ 모든 서비스 배포 완료!"
+          echo "✅ 배포 완료! (로그 확인: tail -f trade.out)"
